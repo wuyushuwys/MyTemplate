@@ -123,8 +123,8 @@ def create_optim_scheduler(model_list: [torch.nn.Module], args: argparse.Namespa
                          f" {warmup_iters}/{total_iters}={warmup_iters / total_iters * 100:.02f}% iterations")
         total_iters -= warmup_iters
 
-    assert hasattr(args, 'scheduler'), "Missing optim in model config"
-    assert isinstance(args.scheduler, dict), "optim in model config should be a dictionary"
+    assert hasattr(args, 'scheduler'), "Missing scheduler in model config"
+    assert isinstance(args.scheduler, dict), "scheduler in config should be a dictionary"
 
     scheduler_module = getattr(lr_scheduler, args.scheduler.get('type'))
     if issubclass(scheduler_module, torch.optim.lr_scheduler.MultiStepLR):
@@ -139,7 +139,8 @@ def create_optim_scheduler(model_list: [torch.nn.Module], args: argparse.Namespa
         #     num_iters * args.epochs * (args.scheduler['periods'][idx + 1] - args.scheduler['periods'][id]) for idx in
         #     range(len(args.scheduler['periods']) - 1)
         # ]
-
+    elif issubclass(scheduler_module, torch.optim.lr_scheduler.CosineAnnealingLR):
+        args.scheduler["T_max"] = total_iters
     else:
         NotImplementedError(f"Method {scheduler_module.__class__} is not implemented")
     optimizer_list = []
