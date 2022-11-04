@@ -13,7 +13,6 @@ from torch.utils.data import DataLoader
 
 from utils import lr_scheduler, gradual_warmup_scheduler
 from utils.prefetch_dataloader import CUDAPrefetcher
-from models.model import Model
 from utils.init_utils import master_only, when_attr_is_true
 
 __all__ = ["create_dataloader",
@@ -146,14 +145,15 @@ def create_optim_scheduler(model_list: [torch.nn.Module], args: argparse.Namespa
     optimizer_list = []
     scheduler_list = []
     for model in model_list:
-        if hasattr(model, 'amortization_models'):
-            amortization_parameters = itertools.chain.from_iterable(
-                [am.parameters() for am in model.amortization_models])
-            optimizer = optim_module(filter(lambda p: p.requires_grad, amortization_parameters),
-                                     **optim_dict)
-        else:
-            optimizer = optim_module(filter(lambda p: p.requires_grad, model.parameters()),
-                                     **optim_dict)
+        # todo: modify if needed
+        # if hasattr(model, 'amortization_models'):
+        #     amortization_parameters = itertools.chain.from_iterable(
+        #         [am.parameters() for am in model.amortization_models])
+        #     optimizer = optim_module(filter(lambda p: p.requires_grad, amortization_parameters),
+        #                              **optim_dict)
+        # else:
+        optimizer = optim_module(filter(lambda p: p.requires_grad, model.parameters()),
+                                 **optim_dict)
         scheduler = scheduler_module(optimizer, **get_subdict(args.scheduler, exception='type'))
 
         if args.warmup_lr:
@@ -201,26 +201,5 @@ def ckpt_saver(path, **kwargs):
 
 
 if __name__ == "__main__":
-    test_params = argparse.Namespace()
-    # test_params.losses = {
-    #     'psnr': {
-    #         "type": "PixelWiseLoss",
-    #         "criterion": 'l1',
-    #         "loss_weight": 1.0,
-    #     },
-    #     # 'vgg': {
-    #     #     "type": "PerceptualLoss",
-    #     #     "layer_weights":{'34': 1.0},
-    #     #     "vgg_type": 'vgg19',
-    #     #     "norm_img": False,
-    #     #     "criterion": 'l1',
-    #     #     "pretrained": 'torchvision://vgg19',
-    #     #     "perceptual_weight": 1,
-    #     # },
-    # }
-    #
-    # test_params.local_rank = 0
-    #
-    # out = create_criterions(test_params)
-    # for k, v in out.items():
-    #     print(k, v)
+    pass
+    # test_params = argparse.Namespace()

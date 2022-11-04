@@ -133,9 +133,9 @@ if __name__ == '__main__':
     logging = LoggingTool(file_path=args.job_dir, verbose=args.verbose)
     args.logger = logging
     init_process(args)
-    # Load train dataset module and update args
-    dataset_module = importlib.import_module(f'datasets.{args.dataset}' if args.dataset else 'datasets')
-    dataset_module.update_argparser(parser)
+    # # Load addition args and update args, e.g., below
+    # dataset_module = importlib.import_module(f'datasets.{args.dataset}' if args.dataset else 'datasets')
+    # dataset_module.update_argparser(parser)
 
     # parsing args
     params = parser.parse_args(namespace=args)

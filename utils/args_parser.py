@@ -2,11 +2,17 @@ __all__ = ['arguments_parser']
 
 
 def arguments_parser(parser):
+    parser.add_argument('--config_file', default=None, type=str, required=True)
+
+    # Dataset
     parser.add_argument('--dataset', default=None, type=str, required=True,
                         help='Dataset name.')
-    # parser.add_argument('--g_arch', default='wdsr_b', type=str,
-    #                     help='Generator Model name.')
-    parser.add_argument('--config_file', default=None, type=str, required=True)
+    parser.add_argument('--train_batch_size', default=256, type=int,
+                        help='Batch size for training.')
+    parser.add_argument('--eval_batch_size', default=256, type=int,
+                        help='Batch size for evaluation.')
+    parser.add_argument('--num_workers', default=8, type=int,
+                        help='Number of workers for data loading.')
 
     parser.add_argument('--job_dir', default=None, type=str,
                         help='Directory to write checkpoints and export models.')
