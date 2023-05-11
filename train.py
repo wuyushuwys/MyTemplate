@@ -60,17 +60,17 @@ def train(**kwargs):
     # save_image(real_img, os.path.join(params.job_dir, 'results', f'epoch_{epoch:02d}_target.bmp'))
 
 
-def main(params):
+def main(args):
     # Enable cudnn Optimization for static network structure
     torch.backends.cudnn.benchmark = True
 
-    device = params.local_rank
+    device = args.local_rank
 
     # Create job and tb_writer
-    writer = SummaryWriter(params.job_dir) if params.rank == 0 else None
+    writer = SummaryWriter(args.job_dir) if args.rank == 0 else None
 
     # Load train datasetcd
-    train_data_loader, train_sampler, eval_data_loaders, eval_sampler = create_dataloader(params)
+    train_data_loader, train_sampler, eval_data_loaders, eval_sampler = create_dataloader(args)
 
     # Create generator
     # model = Model(params)
@@ -80,13 +80,13 @@ def main(params):
     # profile_model(params)
 
     # Loss function
-    criterion = create_criterions(params)
+    criterion = create_criterions(args)
 
     # create optimizers and schedulers
     # [], [] = create_optim_scheduler(**kwargs)
 
     # Load ckpt
-    if params.resume and params.ckpt:
+    if args.resume and args.ckpt:
         pass
     else:
         pass
@@ -96,17 +96,17 @@ def main(params):
     pass
 
     # allocate model to gpu
-    if params.distributed:
+    if args.distributed:
         pass
     else:
         pass
 
-    logging.info(attr_extractor(params))
+    logging.info(attr_extractor(args))
 
     # Eval model
 
     # Train
-    for epoch in range(start_epoch + 1, params.epochs + 1):
+    for epoch in range(start_epoch + 1, args.epochs + 1):
         if train_sampler is not None:
             train_sampler.set_epoch(epoch)
         train()
@@ -129,16 +129,13 @@ if __name__ == '__main__':
     arguments_parser(parser)
 
     # Parse arguments
-    args, _ = parser.parse_known_args()
-    logging = LoggingTool(file_path=args.job_dir, verbose=args.verbose)
-    args.logger = logging
-    init_process(args)
-    # # Load addition args and update args, e.g., below
-    # dataset_module = importlib.import_module(f'datasets.{args.dataset}' if args.dataset else 'datasets')
-    # dataset_module.update_argparser(parser)
+    params = parser.parse_args()
+    logging = LoggingTool(file_path=params.job_dir, verbose=params.verbose)
+    params.logger = logging
+    init_process(params)
 
     # parsing args
-    params = parser.parse_args(namespace=args)
+    # params = parser.parse_args(namespace=args)
     config.update_params(params)
 
     main(params)
