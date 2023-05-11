@@ -10,10 +10,9 @@
 #SBATCH --mem=250G
 #SBATCH --output=logs/%j.log
 
-export CUDA_VISIBLE_DEVICES=0,1
 export NCCL_P2P_DISABLE=1  # IN AMD+A100 cluster
 export MASTER_PORT=$(((RANDOM % 1000 + 5000)))
-num_gpus=$(awk -F '[0-9]' '{print NF-1}' <<<"$CUDA_VISIBLE_DEVICES")
+num_gpus=`nvidia-smi --list-gpus | wc -l`
 
 # Experiments
 
