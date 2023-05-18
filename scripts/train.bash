@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export MASTER_PORT=$(((RANDOM % 1000 + 5000)))
-num_gpus=`nvidia-smi --list-gpus | wc -l`
+num_gpus=$(nvidia-smi --list-gpus | wc -l)
 
 # Experiments
 
@@ -27,7 +27,7 @@ fi
 
 printf '%s\n' "Training on GPU ${CUDA_VISIBLE_DEVICES}"
 
-srun python -m torch.distributed.run  --nproc_per_node $num_gpus --master_port $MASTER_PORT train.py
+python -m torch.distributed.run  --nproc_per_node $num_gpus --master_port $MASTER_PORT train.py
 ##################
 #   placeholder  #
 ##################

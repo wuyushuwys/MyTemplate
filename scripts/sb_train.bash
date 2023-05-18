@@ -12,7 +12,7 @@
 
 export NCCL_P2P_DISABLE=1  # IN AMD+A100 cluster
 export MASTER_PORT=$(((RANDOM % 1000 + 5000)))
-num_gpus=`nvidia-smi --list-gpus | wc -l`
+num_gpus=$(nvidia-smi --list-gpus | wc -l)
 
 # Experiments
 

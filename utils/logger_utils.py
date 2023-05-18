@@ -39,6 +39,8 @@ def attr_extractor(obj):
     for k, v in attr_dict.items():
         if isinstance(v, LoggingTool):
             v = v.name
+        if inspect.isfunction(v):
+            v = inspect.getsource(v)
         v_str = str(v)
         string += f"{str_head}{f'{k}:':{''}{'<'}{info_len}s}{v_str}\n"
 
