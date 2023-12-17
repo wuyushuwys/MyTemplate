@@ -146,12 +146,6 @@ def create_optim_scheduler(model_list: [torch.nn.Module], args: argparse.Namespa
     scheduler_list = []
     for model in model_list:
         # todo: modify if needed
-        # if hasattr(model, 'amortization_models'):
-        #     amortization_parameters = itertools.chain.from_iterable(
-        #         [am.parameters() for am in model.amortization_models])
-        #     optimizer = optim_module(filter(lambda p: p.requires_grad, amortization_parameters),
-        #                              **optim_dict)
-        # else:
         optimizer = optim_module(filter(lambda p: p.requires_grad, model.parameters()),
                                  **optim_dict)
         scheduler = scheduler_module(optimizer, **get_subdict(args.scheduler, exception='type'))

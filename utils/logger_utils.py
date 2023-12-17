@@ -1,5 +1,6 @@
 import importlib
 import torch
+import wandb
 
 from torch.utils import tensorboard
 from thop import profile, clever_format
@@ -9,6 +10,7 @@ import models
 from utils.init_utils import master_only, when_attr_is_true
 
 __all__ = ["attr_extractor", "loss_printer", "tb_writer", "profile_model"]
+
 
 @master_only
 def attr_extractor(obj):
@@ -64,32 +66,13 @@ def tb_writer(writer: tensorboard.writer, loss_dict: dict, nb: int, tag: str = '
         if torch.is_tensor(v):
             v = v.item()
         writer.add_scalar(f'{tag}/{k}', v, nb)
-
+        wandb.log({f'{tag}/{k}': v})
 
 
 @when_attr_is_true('profile')
 @master_only
 def profile_model(args):
-    g_model = importlib.import_module(f'models.model').Model(args)
-    input = torch.randn(1, 3, args.patch_size, args.patch_size)
-    macs, param = clever_format(profile(g_model, inputs=(input,), verbose=False))
-    args.logger.info(f"Generator Training :[ #MACs: {macs}\t #Params: {param}]")
-
-    scalar = 2 ** args.n_downsampling_layers
-    input = torch.randn(1, args.latent_channels, args.patch_size // scalar, args.patch_size // scalar)
-    macs, param = clever_format(profile(g_model.Generator, inputs=(input,), verbose=False))
-    args.logger.info(f"Generator train decoding:[ #MACs: {macs}\t #Params: {param}]")
-
-    H, W = 720, 1280
-    input = torch.randn(1, args.latent_channels, H // scalar, W // scalar)
-    macs, param = clever_format(profile(g_model.Generator, inputs=(input,), verbose=False))
-    args.logger.info(f"Generator {H:d}p decoding :[ #MACs: {macs}\t #Params: {param}]")
-
-    del g_model
-    if hasattr(args, 'd_arch'):
-        d_model = models.create_discrinimator(args)
-        size = int(args.lr_patch_size * args.scale)
-        input = torch.randn(1, 3, size, size)
-        macs, param = clever_format(profile(d_model, inputs=(input,), verbose=False))
-        args.logger.info(f"Discriminator:[{args.d_arch} #MACs: {macs}\t #Params: {param}]")
-        del d_model
+    model = None
+    input = None
+    macs, param = clever_format(profile(model, inputs=(input,), verbose=False))
+    args.logger.info(f"Model :[ #MACs: {macs}\t #Params: {param}]")

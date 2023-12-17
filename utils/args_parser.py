@@ -7,10 +7,10 @@ def arguments_parser(parser):
     # Dataset
     parser.add_argument('--dataset', default=None, type=str, required=True,
                         help='Dataset name.')
-    parser.add_argument('--train_batch_size', default=256, type=int,
-                        help='Batch size for training.')
-    parser.add_argument('--eval_batch_size', default=256, type=int,
-                        help='Batch size for evaluation.')
+    parser.add_argument('--batch_size', default=16, type=int,
+                        help='Batch size for training and evaluation.')
+    # parser.add_argument('--eval_batch_size', default=256, type=int,
+    #                     help='Batch size for evaluation.')
     parser.add_argument('--num_workers', default=8, type=int,
                         help='Number of workers for data loading.')
 

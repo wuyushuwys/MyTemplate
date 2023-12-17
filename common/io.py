@@ -1,57 +1,39 @@
 """File IO helper."""
-
-import warnings
+import os
+import h5py
+import numpy as np
 
 
 class Hdf5:
 
-    def __init__(self, fname, lib='h5py'):
+    def __init__(self, fname, lib='h5py', overwrite=False):
         self.fname = fname
         self.lib = lib
         self.file = None
+        if overwrite and os.path.exists(fname):
+            os.remove(fname)
 
     def add(self, key, value):
-        if self.lib == 'h5py':
-            import h5py
-            with h5py.File(self.fname, 'a', libver='latest') as f:
-                if key in f.keys():
-                    print(f"{key} already existed in {self.fname}, skipping...")
-                else:
-                    f.create_dataset(
-                        key,
-                        data=value,
-                        maxshape=value.shape,
-                        compression='lzf',
-                        shuffle=True,
-                        track_times=False,
-                        # track_order=False,
-                    )
-        elif self.lib == 'pytables':
-            import tables
-            filters = tables.Filters(complevel=8, complib='blosc', bitshuffle=True)
-            original_warnings = list(warnings.filters)
-            warnings.simplefilter('ignore', tables.NaturalNameWarning)
-            with tables.File(self.fname, 'a', filters=filters) as f:
-                f.create_carray(
-                    f.root,
+        with h5py.File(self.fname, 'a', libver='latest') as f:
+            if key in f.keys():
+                print(f"{key} already existed in {self.fname}, skipping...")
+            else:
+                f.create_dataset(
                     key,
-                    obj=value,
+                    data=value,
+                    maxshape=value.shape,
+                    compression='lzf',
+                    shuffle=True,
                     track_times=False,
+                    # track_order=False,
                 )
-            warnings.filters = original_warnings
-        else:
-            raise NotImplementedError
 
     def get(self, key):
-        if self.lib == 'h5py':
-            if not self.file:
-                import h5py
-                self.file = h5py.File(self.fname, 'r', libver='latest')
-            return self.file[key]
-        elif self.lib == 'pytables':
-            if not self.file:
-                import tables
-                self.file = tables.File(self.fname, 'r')
-            return self.file.root[key]
-        else:
-            raise NotImplementedError
+        if not self.file:
+            self.file = h5py.File(self.fname, 'r', libver='latest')
+        return self.file[key]
+
+    @property
+    def keys(self):
+        with h5py.File(self.fname, mode='r', libver='latest') as f:
+            return list(f.keys())

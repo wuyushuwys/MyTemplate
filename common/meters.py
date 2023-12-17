@@ -9,31 +9,41 @@ class AverageMeter:
     """Computes and stores the average and current value"""
 
     def __init__(self):
-        self.reset()
+        self._val = 0
+        self._avg = 0
+        self._sum = 0
+        self._count = 0
 
     def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
+        self._val = 0
+        self._avg = 0
+        self._sum = 0
+        self._count = 0
 
     def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
+        self._val = val
+        self._sum += val * n
+        self._count += n
 
-    def get_avg(self):
-        if torch.is_tensor(self.avg):
-            self.avg = self.avg.item()
-        return self.avg
+    @property
+    def avg(self):
+        return self._sum / self._count
+
+    @property
+    def val(self):
+        return self._val
 
 
 class TimeMeter:
     """Computes and stores the average and current value"""
 
     def __init__(self):
-        self.reset()
+        self.start_time = time.time()
+        self.end_time = self.start_time
+        self.sum = 0
+        self.avg = 0
+        self.count = 0
+        self.remain_time = 0
 
     def reset(self):
         self.start_time = time.time()
@@ -65,15 +75,18 @@ class LossesMeter:
         self._loss = {}
         self.fmt = fmt
 
-    def update(self, dict: dict):
-        for key, value in dict.items():
+    def update(self, loss_dict: dict, size=1):
+        for key, value in loss_dict.items():
             if key not in self._loss.keys():
                 self._loss[key] = AverageMeter()
+                self._loss[key].update(value, n=size)
             else:
-                self._loss[key].update(value)
+                self._loss[key].update(value, n=size)
 
-    def print_avg(self):
+    @property
+    def avg(self):
         return loss_printer({key: meter.avg for key, meter in self._loss.items()}, fmt=self.fmt)
 
-    def print_val(self):
+    @property
+    def val(self):
         return loss_printer({key: meter.val for key, meter in self._loss.items()}, fmt=self.fmt)

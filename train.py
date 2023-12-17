@@ -9,6 +9,8 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchvision.utils import save_image
 
+import wandb
+
 import config
 
 from utils import *

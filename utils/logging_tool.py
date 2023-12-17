@@ -2,55 +2,42 @@ import logging
 import time
 import os
 
-from utils import master_only
+from utils.init_utils import get_dist_info
 
 initialized_logger = {}
 
 
-class StringColors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+def get_logger(file_path):
+    rank, _ = get_dist_info()
+    name = f"{file_path}:{rank}"
+    logger = logging.getLogger(name)
+    if name in logger_initialized:
+        return logger
 
+    for logger_name in logger_initialized:
+        if file_path.startswith(logger_name):
+            return logger
 
-class LoggingTool:
-    def __init__(self, file_path, verbose):
-        self.name = f"{file_path}/result.log"
-        self.verbose = verbose
-        self.colors = StringColors()
-        self.time = time.localtime
-        format_str = '%(asctime)s:%(levelname)s:%(message)s'
-        os.makedirs(file_path, exist_ok=True)
+    for handler in logger.root.handlers:
+        if type(handler) is logging.StreamHandler:
+            handler.setLevel(logging.ERROR)
 
-        self.logger = logging.Logger(file_path)
+    format_str = f'%(asctime)s::%(message)s'
+    formatter = logging.Formatter(format_str, "%Y-%m-%d %H:%M:%S")
+    os.makedirs(file_path, exist_ok=True)
+
+    if rank == 0:
         file_handler = logging.FileHandler(f"{file_path}/result.log", 'w')
-        file_handler.setFormatter(logging.Formatter(format_str))
-        file_handler.setLevel([logging.WARNING, logging.INFO, logging.DEBUG][verbose])
-        self.logger.addHandler(file_handler)
-        initialized_logger[file_path] = True
-        # self.logger = logging.basicConfig(
-        #     filename=f"{file_path}/result.log",
-        #     filemode='w',
-        #     level=[logging.WARNING, logging.INFO, logging.DEBUG][verbose],
-        #     format='%(asctime)s:%(levelname)s:%(message)s',
-        # )
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(logging.INFO)
+        logger.addHandler(file_handler)
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        stream_handler.setLevel(logging.INFO)
+        logger.addHandler(stream_handler)
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.ERROR)
 
-    @master_only
-    def info(self, string, is_print=True):
-        if is_print:
-            print(f"{self.time_updater()} INFO:{string}")
-        self.logger.info(string)
-
-    @master_only
-    def warning(self, string):
-        print(f"{self.colors.WARNING}{self.time_updater()} WARNING: {string}{self.colors.ENDC}")
-        self.logger.warning(string)
-
-    def time_updater(self):
-        return time.strftime('%Y-%m-%d %H:%M:%S', self.time())
+    logger_initialized[name] = True
+    return logger
