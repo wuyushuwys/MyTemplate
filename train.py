@@ -14,7 +14,7 @@ import wandb
 import config
 
 from utils import *
-from utils.logging_tool import LoggingTool
+from utils.logging_tool import get_logger
 from models import Model
 
 save_image = master_only(save_image)
@@ -131,7 +131,7 @@ if __name__ == '__main__':
 
     # Parse arguments
     params = parser.parse_args()
-    logging = LoggingTool(file_path=params.job_dir, verbose=params.verbose)
+    logging = get_logger(file_path=params.job_dir)
     params.logger = logging
     init_process(params)
 
