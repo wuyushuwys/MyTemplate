@@ -1,128 +1,92 @@
-import warnings
-
 import argparse
-import importlib
 import os
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torchvision.utils import save_image
 
 import wandb
+from omegaconf import OmegaConf
 
 import config
 
-from utils import *
+from utils.args_parser import arguments_parser
+from utils.init_utils import init_process
+from utils.train_utils import create_dataloader, create_criterions, create_optim_scheduler
+from utils.logger_utils import attr_extractor
 from utils.logging_tool import get_logger
-from models import Model
 
-save_image = master_only(save_image)
-
-
-def train(**kwargs):
-    pass
-    # g_loss_meter = common.meters.AverageMeter()
-    # time_meter = common.meters.TimeMeter()
-    # losses_meter = common.meters.LossesMeter(fmt='.04e')
-    #
-    # g_model.train()
-    # nb = len(train_data_loader)
-    # losses = {}
-    # batch_idx = 0
-    # train_data_loader.reset()
-    # batch = train_data_loader.next()
-    # while batch is not None:
-    #     batch_idx += 1
-    #
-    #     total_batches = (epoch - 1) * nb + batch_idx
-    #
-    #     batch = train_data_loader.next()
-    #
-    #     time_meter.update()
-    #     losses_meter.update(losses)
-    #
-    #     if batch_idx % params.log_steps == 0 and params.rank == 0:
-    #         pass
-    # time_meter.complete_time(nb - batch_idx)
-    # tb_writer(writer=writer, loss_dict=losses, nb=total_batches, tag='train')
-    # writer.add_scalar('train/loss', g_loss_meter.val, total_batches)
-    # time_meter.complete_time(nb - batch_idx)
-    # s = f"## Epoch:{epoch:{' '}{'>'}{2}d}/{params.epochs}\t" \
-    #     f"Iters:{batch_idx:{' '}{'>'}{len(str(nb))}d}/{nb:d}({batch_idx / nb * 100:.2f}%)\t" \
-    #     f"Epoch-est. {time_meter.remain_time}\t" \
-    #     f"Loss: {g_loss_meter.val:.04f}\t" \
-    #     f"{loss_printer(losses, fmt='.04e')}"
-    # logging.info(f"Epoch{epoch:{' '}{'>'}{2}d}/{params.epochs} finished."
-    #              f"\tG_loss: {g_loss_meter.avg:.6f}"
-    #              f"\t{losses_meter.print_avg()}")
-    # save_image(recon.clamp(0, 1), os.path.join(params.job_dir, 'results', f'epoch_{epoch:02d}_output.bmp'))
-    # save_image(real_img, os.path.join(params.job_dir, 'results', f'epoch_{epoch:02d}_target.bmp'))
+# from arch import SomeModel
+from models.basic_model import BasicModel
 
 
 def main(args):
-    # Enable cudnn Optimization for static network structure
-    torch.backends.cudnn.benchmark = True
-
+    logger = get_logger()
     device = args.local_rank
 
+    # init wandb
+    if args.rank == 0:
+        wandb.init(project='lip-sync', dir=args.job_dir, name=args.job_dir.split('/')[-1],
+                   config=OmegaConf.to_container(args))
     # Create job and tb_writer
     writer = SummaryWriter(args.job_dir) if args.rank == 0 else None
-    # todo: add project name for wandb
-    wandb.init(project=PROJ_NAME, dir=args.job_dir, name=args.job_dir.split('/')[-1], config=args)
-    # Load train datasetcd
-    train_data_loader, train_sampler, eval_data_loaders, eval_sampler = create_dataloader(args)
+
+    # Load dataset
+    logger.info(f"Load Dataset")
+    train_data_loader, train_sampler, eval_data_loaders, eval_samplers = create_dataloader(args)
 
     # Create generator
-    # model = Model(params)
+    logger.info(f"Create Model")
+    model = SomeModel(**args.model)
 
-    logging.info(f"\n{model}")
-
-    # profile_model(params)
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    logger.info(f"G-Model {model} :[Trainable Parameters: {trainable_params}]")
 
     # Loss function
+    logger.info(f"Load loss function")
     criterion = create_criterions(args)
-
-    # create optimizers and schedulers
-    # [], [] = create_optim_scheduler(**kwargs)
-
-    # Load ckpt
-    if args.resume and args.ckpt:
-        pass
-    else:
-        pass
-
-    # Load state_dict
-
-    pass
 
     # allocate model to gpu
     if args.distributed:
-        pass
+        logger.info("Distributed Training")
+        model = DDP(model.to(device), device_ids=[device], output_device=device)
     else:
-        pass
+        model.to(device)
 
-    logging.info(attr_extractor(args))
+    # create optimizers and schedulers
+    [optimizer], [scheduler] = create_optim_scheduler(model,
+                                                      args=args,
+                                                      num_batches=len(train_data_loader))
+    trainer = BasicModel(**kwargs)
 
-    # Eval model
+    # Load ckpt
+    start_epoch = trainer.load_ckpt(args.ckpt,
+                                    model=model, optimizer=optimizer, scheduler=scheduler)
 
-    # Train
+    # Load state_dict
+    trainer.load_model(model=g_model, ckpt_path=args.g_weight)
+    trainer.load_model(model=d_model, ckpt_path=args.d_weight)
+
+    logger.info(attr_extractor(args))
+
+    if args.weight or args.ckpt:
+        trainer.evaluating_epoch(epoch=start_epoch)
+        if args.eval_only:
+            return logger.info('Finish evaluation')
+
     for epoch in range(start_epoch + 1, args.epochs + 1):
+        # Train
         if train_sampler is not None:
             train_sampler.set_epoch(epoch)
-        train()
-        # evaluation_generator(g_model, eval_data_loaders, epoch, writer, device=device, params=params)
-        # save model weight
-        # state_dict_saver(os.path.join(params.job_dir, 'weights', 'g_model.pt'), g_model)
-        # ckpt_saver(os.path.join(params.job_dir, "ckpt", f"g_latest.pth"),
-        #            g_model=g_model,
-        #            g_optimizer=g_optimizer, g_scheduler=g_scheduler,
-        #            entropy_optimizer=entropy_optimizer, entropy_scheduler=entropy_scheduler,
-        #            epoch=epoch)
-    # if params.rank == 0:
-    #     writer.close()
+        trainer.training_epoch(epoch=epoch)
+        # Eval model
+        trainer.evaluating_epoch(epoch=epoch)
 
-    logging.info(f"Finish Training")
+        # save model weight
+        trainer.save_model(os.path.join(args.job_dir, 'weights'))
+        trainer.save_ckpt(os.path.join(args.job_dir, "ckpt"), epoch=epoch)
+
+    logger.info(f"Finish Training")
 
 
 if __name__ == '__main__':
@@ -130,13 +94,13 @@ if __name__ == '__main__':
     arguments_parser(parser)
 
     # Parse arguments
-    params = parser.parse_args()
-    logging = get_logger(file_path=params.job_dir)
-    params.logger = logging
-    init_process(params)
+    args = parser.parse_args()
+    init_process(args)
 
-    # parsing args
-    # params = parser.parse_args(namespace=args)
-    config.update_params(params)
+    # read from config file
+    args = config.update_params(args)
 
-    main(params)
+    # create logger
+    logger = get_logger(file_path=args.job_dir)
+
+    main(args)

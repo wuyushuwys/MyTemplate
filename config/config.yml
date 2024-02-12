@@ -1,31 +1,23 @@
-seq_length: 32
-res: 8
-pred_seq_length: 1
-
+# Any args that will override argparse input
 LipReg_lambda: 0
 
-classifier:
+model:
+  # model kwargs example
   hidden_dim: 512
   dropout: 0.1
   num_encoder_layers: 3
   num_cross_layers: 1
 
 optim:
-  type: Adam
-  lr: 1.0e-5
-  betas: [0.9, 0.999]
-
-#scheduler:
-#  type: MultiStepLR
-#  milestones: [0.8]
-#  gamma: 0.5
+  type: Adam                # optim type
+  lr: 1.0e-5                # optim lr
+  betas: [ 0.9, 0.999 ]     # optim kwargs
 
 scheduler:
-  type: CosineAnnealingLR
-  eta_min: 1.0e-5
-
+  type: CosineAnnealingLR   # scheduler type
+  eta_min: 1.0e-5           # scheduler kwargs
 
 losses:
-  pos:
-    type: CrossEntropyLoss
-    label_smoothing: 0.1
+  loss: # loss name
+    type: CrossEntropyLoss  # loss type
+    label_smoothing: 0.1    # loss kwargs

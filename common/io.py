@@ -1,14 +1,12 @@
 """File IO helper."""
 import os
 import h5py
-import numpy as np
 
 
 class Hdf5:
 
     def __init__(self, fname, lib='h5py', overwrite=False):
         self.fname = fname
-        self.lib = lib
         self.file = None
         if overwrite and os.path.exists(fname):
             os.remove(fname)
@@ -28,12 +26,39 @@ class Hdf5:
                     # track_order=False,
                 )
 
+    def add_subset(self, key, link):
+        with h5py.File(self.fname, 'a', libver='latest') as f:
+            f[key] = h5py.ExternalLink(link, '/')
+
     def get(self, key):
-        if not self.file:
+        if self.file is None:
             self.file = h5py.File(self.fname, 'r', libver='latest')
-        return self.file[key]
+        if '/' in key:
+            value = self.file
+            for k in key.split('/'):
+                value = value[k]
+        else:
+            value = self.file[key]
+        return value
+
+    def load(self):
+        if self.file is None:
+            self.file = h5py.File(self.fname, 'r', libver='latest')
+        return self.file
 
     @property
     def keys(self):
-        with h5py.File(self.fname, mode='r', libver='latest') as f:
-            return list(f.keys())
+        if self.file is None:
+            self.file = h5py.File(self.fname, 'r', libver='latest')
+        return sorted(list(self.file.keys()))
+
+    def iter_keys(self, key):
+        if self.file is None:
+            self.file = h5py.File(self.fname, 'r', libver='latest')
+
+        value = self.file
+        if '/' in key:
+            for k in key.split('/'):
+                value = value[k]
+
+        return sorted(list(value.keys()))
